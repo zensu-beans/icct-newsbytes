@@ -53,6 +53,7 @@ module.exports = async (req, res) => {
     const html = `<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(title)}</title>
 <meta property="og:site_name" content="${SITE_NAME}">
 <meta property="og:type" content="article">
@@ -64,8 +65,18 @@ module.exports = async (req, res) => {
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(excerpt)}">
 <meta name="twitter:image" content="${imageUrl}">
+<!-- Real in-app browsers (Messenger, Instagram, etc.) sometimes render this
+     exact response to an actual person, and some of their embedded preview
+     surfaces don't run JavaScript. A meta-refresh redirects even then,
+     without needing any script to execute. -->
+<meta http-equiv="refresh" content="0; url=${pageUrl}">
+<style>
+  body{font-family:sans-serif;padding:32px 20px;color:#111009;text-align:center}
+  a{color:#c8382a;font-weight:600;text-decoration:none}
+</style>
 </head><body>
 <p>${escapeHtml(title)}</p>
+<p><a href="${pageUrl}">Continue to full article →</a></p>
 <script>location.replace(${JSON.stringify(pageUrl)});</script>
 </body></html>`;
 
