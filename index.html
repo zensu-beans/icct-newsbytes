@@ -6,16 +6,17 @@
 <title>Newsbytes</title>
 <link rel="icon" type="image/png" href="newsbytes_logo.png">
 
-<meta property="og:type" content="website">
+<!-- ═══ OPEN GRAPH / TWITTER CARD (default, site-wide) ═══ -->
 <meta property="og:site_name" content="Newsbytes">
-<meta property="og:title" content="Newsbytes — ICCT Colleges Student Newspaper">
-<meta property="og:description" content="Your source for campus news, sports, editorials, and student life at ICCT Colleges.">
-<meta property="og:image" content="https://icct-newsbytes.vercel.app/newsbytes_logo.png">
-<meta property="og:url" content="https://icct-newsbytes.vercel.app/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Newsbytes — ICCT Colleges">
+<meta property="og:description" content="Campus news, events, sports, and student life — straight from ICCT Colleges.">
+<meta property="og:image" content="https://YOUR-DOMAIN-HERE/newsbytes_logo.png">
+<meta property="og:url" content="https://YOUR-DOMAIN-HERE/">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Newsbytes — ICCT Colleges Student Newspaper">
-<meta name="twitter:description" content="Your source for campus news, sports, editorials, and student life at ICCT Colleges.">
-<meta name="twitter:image" content="https://icct-newsbytes.vercel.app/newsbytes_logo.png">
+<meta name="twitter:title" content="Newsbytes — ICCT Colleges">
+<meta name="twitter:description" content="Campus news, events, sports, and student life — straight from ICCT Colleges.">
+<meta name="twitter:image" content="https://YOUR-DOMAIN-HERE/newsbytes_logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -723,27 +724,21 @@ onSnapshot(articlesQ, snap => {
 });
 
 // ── DEEP LINKING ──
-// Copied/shared story links use a canonical ?article=<id> query string
-// (e.g. https://yoursite.com/?article=abc123). Query strings — unlike hash
-// fragments — are actually sent to the server, which is what lets the
-// "renderPage" Cloud Function read the article ID and inject the correct
-// Open Graph tags before Facebook/Messenger/etc. fetch the page.
-//
-// Old links using the previous #<article-id> hash format are still
-// supported as a fallback so previously-shared links don't break.
-//
-// On load (and on back/forward navigation) we check for an article id and
-// open that story — fetching it directly from Firestore if it's older than
-// the live window so shared links always work, no matter how far back the
-// story is.
-function getRouteArticleId(){
-  const fromQuery = new URLSearchParams(location.search).get('article');
-  if(fromQuery) return fromQuery;
-  const fromHash = location.hash.slice(1);
-  return fromHash || null;
+// Copied/shared story links use a /article/<id> path (so link-preview crawlers,
+// which only ever see the raw URL, can resolve which story it is server-side —
+// see /api/article.js). We also still honor the older #<article-id> hash
+// format for any links people already shared before this change. On load
+// (and on back/forward navigation) we check both and open that story —
+// fetching it directly from Firestore if it's older than the live window so
+// shared links always work, no matter how far back the story is.
+function routeIdFromLocation(){
+  const m=location.pathname.match(/\/article\/([^/?#]+)/);
+  if(m) return decodeURIComponent(m[1]);
+  if(location.hash.slice(1)) return decodeURIComponent(location.hash.slice(1));
+  return '';
 }
 async function checkHashRoute(){
-  const id=getRouteArticleId();
+  const id=routeIdFromLocation();
   if(!id) return;
   let a=articles.find(x=>x.id===id);
   if(!a){
@@ -1041,7 +1036,7 @@ function scrollProgressHandler(){
   bar.style.width=(max>0?Math.min(100,(el.scrollTop/max)*100):0)+'%';
 }
 window.shareArticle = function(){
-  const url=location.origin+location.pathname+'?article='+currentReaderId;
+  const url=location.origin+'/article/'+encodeURIComponent(currentReaderId);
   const done=()=>toast('Link copied! ✓','success');
   const fail=()=>toast('Could not copy — select and copy the URL manually.','error');
   if(navigator.clipboard && window.isSecureContext){
@@ -1126,13 +1121,13 @@ window.openReader = function(id){
   document.getElementById('reading-progress').style.width='0%';
   readerEl.removeEventListener('scroll',scrollProgressHandler);
   readerEl.addEventListener('scroll',scrollProgressHandler);
-  try{ history.replaceState(null,'',location.pathname+'?article='+id); }catch(e){}
+  try{ history.replaceState(null,'','/article/'+encodeURIComponent(id)); }catch(e){}
 };
 window.closeReader = function(){
   document.getElementById('reader').classList.remove('open');
   document.getElementById('reader').removeEventListener('scroll',scrollProgressHandler);
   currentReaderId=null;
-  try{ history.replaceState(null,'',location.pathname); }catch(e){}
+  try{ history.replaceState(null,'','/'); }catch(e){}
 };
 
 // ── NAV ──
