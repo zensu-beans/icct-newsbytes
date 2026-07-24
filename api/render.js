@@ -4,7 +4,7 @@ const path = require('path');
 // ══════════════════════════════════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════════════════════════════════
-const FIREBASE_PROJECT_ID = 'newsbytes-5ed18'; // from your firebaseConfig
+const FIREBASE_PROJECT_ID = 'newsbytes-5ed18';
 const FIRESTORE_BASE =
   `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
 
@@ -54,11 +54,6 @@ function parseFirestoreDoc(doc) {
   return out;
 }
 
-// og:image MUST be a real fetchable http(s) URL — Facebook/Messenger cannot
-// render a data:image/...;base64,... string. If the article's image is
-// stored as base64 (common when images live directly in Firestore fields
-// rather than Firebase Storage/an external host), point og:image at our
-// own /api/image endpoint instead, which decodes and serves real bytes.
 function resolveImageUrl(img, SITE_URL, articleId) {
   if (!img) return null;
   if (/^data:image\//i.test(img)) {
@@ -78,8 +73,10 @@ module.exports = async (req, res) => {
     let description = DEFAULT_DESC;
     let image = `${SITE_URL}/newsbytes_logo.png`;
     let url = `${SITE_URL}/`;
+    let articleFound = false;
 
     if (articleId) {
+      url = `${SITE_URL}/?article=${encodeURIComponent(String(articleId))}`;
       const resp = await fetch(
         `${FIRESTORE_BASE}/articles/${encodeURIComponent(String(articleId))}`
       );
@@ -94,8 +91,17 @@ module.exports = async (req, res) => {
         // Base64-stored images get routed through /api/image (see below),
         // since og:image must be a real fetchable URL, not a data: URI.
         image = resolveImageUrl(a.img, SITE_URL, articleId) || `${SITE_URL}/newsbytes_logo.png`;
+        articleFound = true;
+      } else {
+        // Log the real reason (403 = Firestore rules blocking reads, 404 =
+        // wrong/nonexistent article ID, etc.) — check this in the Vercel
+        // dashboard: Project -> Deployments -> your deployment -> Functions
+        // -> render -> Logs if this keeps happening.
+        const bodyText = await resp.text().catch(() => '');
+        console.error(
+          `Firestore fetch failed for article "${articleId}": ${resp.status} ${resp.statusText} — ${bodyText}`
+        );
       }
-      url = `${SITE_URL}/?article=${encodeURIComponent(String(articleId))}`;
     }
 
     html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(title)}</title>`);
@@ -108,7 +114,17 @@ module.exports = async (req, res) => {
     html = setMetaTag(html, 'name', 'twitter:image', image);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=600');
+    if (!articleId || articleFound) {
+      // Safe to cache: either the plain homepage default, or a genuinely
+      // successful article render.
+      res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=600');
+    } else {
+      // An article ID was requested but we couldn't resolve it — never
+      // cache this, so a transient Firestore hiccup or a fixed typo shows
+      // up correctly on the very next request instead of being stuck for
+      // up to 10 minutes.
+      res.setHeader('Cache-Control', 'no-store');
+    }
     res.status(200).send(html);
   } catch (err) {
     console.error('render error:', err);
@@ -116,6 +132,7 @@ module.exports = async (req, res) => {
     try {
       const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
       res.status(200).send(html);
     } catch (e2) {
       res.status(500).send('Internal error');
