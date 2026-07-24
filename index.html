@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Newsbytes</title>
+<link rel="icon" type="image/png" href="newsbytes_logo.png">
+
+<!-- ═══════════════════════════════════════════
+     OPEN GRAPH / TWITTER CARD METADATA
+     These are the SITE-WIDE DEFAULTS, shown for the homepage and for any
+     crawler that (for whatever reason) doesn't hit the SSR function below.
+     For individual article URLs (?article=ID), the Cloud Function
+     "renderPage" rewrites the content="" values below on the server,
+     BEFORE this HTML reaches Facebook/Messenger/Twitter/etc, so the
+     preview always reflects the real article. See functions/index.js.
+
+     IMPORTANT: replace SITE_URL below with your real Firebase Hosting URL
+     or custom domain (must match SITE_URL in functions/index.js exactly).
+════════════════════════════════════════════ -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Newsbytes">
+<meta property="og:title" content="Newsbytes — ICCT Colleges Student Newspaper">
+<meta property="og:description" content="Your source for campus news, sports, editorials, and student life at ICCT Colleges.">
+<meta property="og:image" content="https://newsbytes-5ed18.web.app/newsbytes_logo.png">
+<meta property="og:url" content="https://newsbytes-5ed18.web.app/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Newsbytes — ICCT Colleges Student Newspaper">
+<meta name="twitter:description" content="Your source for campus news, sports, editorials, and student life at ICCT Colleges.">
+<meta name="twitter:image" content="https://newsbytes-5ed18.web.app/newsbytes_logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#111009;--ink2:#2c2b28;--muted:#7a7870;--faint:#b5b2ab;
+  --rule:#e8e6e1;--bg:#f5f3ee;--paper:#fdfcfa;--white:#fff;
+  --accent:#c8382a;--gold:#c49a3c;
+  --adm-bg:#0d1018;--adm-panel:#161b27;--adm-border:#2a3048;
+  --adm-accent:#4f6ef7;--adm-green:#22c55e;--adm-red:#ef4444;
+  --adm-muted:#8892b0;--adm-text:#ccd6f6;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes slideRight{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══ LOADING SCREEN ═══ */
+#loading-screen{position:fixed;inset:0;background:var(--paper);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
+#loading-screen.hidden{opacity:0;pointer-events:none}
+.loading-logo{font-family:'Libre Baskerville',serif;font-size:36px;font-weight:700;color:var(--ink)}
+.loading-spinner{width:28px;height:28px;border:3px solid var(--rule);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+.loading-sub{font-size:12px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+
+/* ═══ TOPBAR ═══ */
+.topbar{background:var(--ink);color:rgba(255,255,255,.4);font-size:11px;letter-spacing:.07em;text-transform:uppercase;padding:7px 24px;display:flex;align-items:center;justify-content:space-between}
+.topbar-left{display:flex;align-items:center;gap:16px}
+#live-date{color:rgba(255,255,255,.75);font-weight:500}
+.topbar-sep{opacity:.25}
+.topbar-right{display:flex;align-items:center;gap:10px}
+
+/* ═══ MASTHEAD ═══ */
+.masthead{background:var(--paper);border-bottom:3px double var(--ink);padding:28px clamp(1rem,4vw,4rem) 0;position:relative;overflow:hidden}
+.masthead::after{content:'NEWSBYTES';position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-family:'Barlow Condensed',sans-serif;font-size:clamp(80px,14vw,170px);font-weight:800;color:rgba(0,0,0,.028);letter-spacing:-.02em;white-space:nowrap;pointer-events:none;user-select:none}
+.masthead-inner{max-width:1320px;margin:0 auto;display:flex;flex-direction:column;align-items:center;padding-bottom:24px;gap:6px}
+/* Kicker row */
+.mast-kicker-row{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:10px}
+.mast-kicker{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);border-top:2px solid var(--accent);border-bottom:2px solid var(--accent);padding:3px 14px;margin-bottom:0}
+/* Title */
+.logo{font-family:'Libre Baskerville',serif;font-size:clamp(40px,9vw,90px);font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--ink);cursor:pointer;transition:color .2s;text-align:center;flex:0 0 auto}
+.logo:hover{color:var(--accent)}
+.mast-tagline{font-size:11.5px;font-weight:300;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+/* Title row (desktop) */
+.mast-title-row{display:flex;align-items:center;justify-content:center;gap:24px;width:100%}
+/* Logo slots — shared */
+.mast-logo-slot{position:relative;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.mast-logo-img{object-fit:contain;border-radius:50%;display:none;border:1.5px solid var(--rule)}
+.mast-logo-img.show{display:block}
+/* Desktop/tablet: logos flank title */
+.mast-kicker-row .mast-logo-slot{display:none}
+.mast-title-row .mast-logo-slot{width:68px;height:68px}
+.mast-title-row .mast-logo-img{width:68px;height:68px}
+/* Mobile: logos flank kicker */
+@media(max-width:599px){
+  .mast-title-row{display:contents}
+  .mast-title-row .mast-logo-slot{display:none}
+  .mast-kicker-row .mast-logo-slot{display:flex;width:40px;height:40px}
+  .mast-kicker-row .mast-logo-img{width:40px;height:40px}
+  .logo{width:100%}
+}
+
+/* ═══ NAV ═══ */
+.nav-wrap{background:var(--ink);padding:0 clamp(1rem,4vw,4rem);position:sticky;top:0;z-index:150;box-shadow:0 2px 20px rgba(0,0,0,.35)}
+.nav-row{max-width:1320px;margin:0 auto;display:flex;align-items:stretch}
+.nav-inner{flex:1;min-width:0;display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none}
+.nav-inner::-webkit-scrollbar{display:none}
+.nav-btn{background:none;border:none;border-bottom:3px solid transparent;color:rgba(255,255,255,.42);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:13px 18px;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s;position:relative}
+.nav-btn:hover{color:rgba(255,255,255,.8)}
+.nav-btn.active{color:#fff;border-bottom-color:var(--accent)}
+.nav-count{position:absolute;top:8px;right:6px;background:var(--accent);color:#fff;font-size:8px;font-weight:700;border-radius:8px;padding:1px 5px;min-width:14px;text-align:center;line-height:14px}
+.nav-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;padding-left:10px;position:relative}
+.nav-actions::before{content:'';position:absolute;right:100%;top:0;bottom:0;width:22px;background:linear-gradient(to right,transparent,var(--ink));pointer-events:none}
+.nav-about{background:none;border:1px solid rgba(255,255,255,.16);border-radius:2px;color:rgba(255,255,255,.5);font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:8px 14px;cursor:pointer;align-self:center;transition:border-color .18s,color .18s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.nav-about.active{border-color:var(--gold);color:var(--gold)}
+@media (hover:hover){.nav-about:hover{border-color:var(--gold);color:var(--gold)}}
+@media(max-width:900px){.nav-about{padding:7px 11px;font-size:10px}}
+
+/* ═══ TICKER ═══ */
+.ticker-wrap{background:var(--accent);overflow:hidden;padding:6px 0}
+.ticker-track{display:flex;animation:ticker 50s linear infinite}
+.ticker-track:hover{animation-play-state:paused}
+.ticker-item{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.04em;color:#fff;white-space:nowrap;padding:0 32px;display:flex;align-items:center;gap:10px}
+.ticker-item::after{content:'◆';font-size:6px;opacity:.5}
+
+/* ═══ LAYOUT ═══ */
+.page-shell{max-width:1320px;margin:0 auto;padding:44px clamp(1rem,4vw,4rem);display:grid;grid-template-columns:1fr 300px;gap:48px;align-items:start}
+@media(max-width:900px){.page-shell{grid-template-columns:1fr}.sidebar{display:none}}
+
+/* ═══ HERO ═══ */
+.hero{display:grid;grid-template-columns:1fr 360px;margin-bottom:52px;border:1px solid var(--rule);border-radius:6px;overflow:hidden;box-shadow:0 4px 40px rgba(0,0,0,.08);animation:fadeUp .45s ease both;position:relative}
+@media(max-width:700px){.hero{grid-template-columns:1fr}}
+.hero-text{background:var(--paper);padding:44px 48px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--rule)}
+.hero-cat-tag{display:inline-flex;align-items:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+.hero-cat-tag::before{content:'';width:22px;height:2px;background:currentColor}
+.hero-title{font-family:'Libre Baskerville',serif;font-size:clamp(20px,2.8vw,36px);font-weight:700;line-height:1.17;letter-spacing:-.02em;color:var(--ink);margin-bottom:16px;cursor:pointer;transition:color .18s}
+.hero-title:hover{color:var(--accent)}
+.hero-excerpt{font-size:14.5px;line-height:1.8;color:var(--ink2);margin-bottom:20px;font-weight:300}
+.hero-meta{font-size:11.5px;color:var(--faint);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hero-meta strong{color:var(--muted);font-weight:600}
+.read-more{display:inline-flex;align-items:center;gap:6px;margin-top:20px;font-family:'Barlow Condensed',sans-serif;font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);background:none;border:2px solid var(--accent);padding:9px 20px;border-radius:3px;cursor:pointer;transition:all .18s;align-self:flex-start}
+.read-more:hover{background:var(--accent);color:#fff}
+.hero-img{background:linear-gradient(145deg,#1a1814,#2c2820 55%,#181410);min-height:340px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.hero-img::after{content:'NB';position:absolute;bottom:-18px;right:-6px;font-family:'Libre Baskerville',serif;font-size:120px;font-weight:700;color:rgba(255,255,255,.035);pointer-events:none}
+.hero-img img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.hero-img .no-img-lbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.16)}
+.hero-img .img-credit{position:absolute;left:0;right:0;bottom:0;z-index:2;font-size:10.5px;color:rgba(255,255,255,.85);background:linear-gradient(to top,rgba(0,0,0,.55),transparent);padding:16px 14px 8px;font-style:italic}
+.card-img-credit{font-size:10.5px;color:var(--faint);font-style:italic;padding:8px 28px 0}
+.rd-hero-img-credit{font-size:11.5px;color:var(--faint);font-style:italic;margin-bottom:24px}
+
+/* ═══ SECTION HEAD ═══ */
+.sec-head{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.sec-head h2{font-family:'Barlow Condensed',sans-serif;font-size:11.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--ink);white-space:nowrap}
+.sec-head .line{flex:1;height:1px;background:var(--rule)}
+
+/* ═══ DATE FILTER ═══ */
+.date-filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+.df-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.date-filter-bar select{font-family:'Barlow',sans-serif;font-size:12.5px;color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:20px;padding:6px 14px;outline:none;cursor:pointer;transition:border-color .16s}
+.date-filter-bar select:hover,.date-filter-bar select:focus{border-color:var(--accent)}
+.df-clear{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:none;border:none;cursor:pointer;padding:6px 4px}
+.df-clear:hover{text-decoration:underline}
+
+/* ═══ SCROLLABLE FEED ═══ */
+.feed-scroll{max-height:clamp(420px,calc(100vh - 260px),900px);overflow-y:auto;padding-right:10px;margin-right:-10px;scroll-behavior:smooth}
+.feed-scroll::-webkit-scrollbar{width:8px}
+.feed-scroll::-webkit-scrollbar-track{background:transparent}
+.feed-scroll::-webkit-scrollbar-thumb{background:var(--rule);border-radius:4px}
+.feed-scroll::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+
+/* ═══ ARTICLE GRID ═══ */
+.art-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden;margin-bottom:40px}
+.card{background:var(--paper);padding:0;display:flex;flex-direction:column;position:relative;transition:background .16s,box-shadow .16s,transform .16s;animation:fadeUp .4s ease both}
+.card:hover{background:var(--white);z-index:1;box-shadow:0 10px 28px rgba(0,0,0,.09);transform:translateY(-2px)}
+.card-accent{height:3px;width:100%;flex-shrink:0}
+.card-thumb{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;flex-shrink:0;background:linear-gradient(145deg,#1a1814,#2c2820 55%,#181410)}
+.card-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.card:hover .card-thumb img{transform:scale(1.04)}
+.card-body{padding:26px 28px;display:flex;flex-direction:column;flex:1}
+.card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-cat-lbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:6px}
+.card-cat-lbl::before{content:'';width:14px;height:1.5px;background:currentColor}
+.card-date-lbl{font-size:10.5px;color:var(--faint);display:flex;align-items:center;gap:6px;text-align:right}
+.card-date-lbl .rt-dot{opacity:.4}
+.card-title{font-family:'Libre Baskerville',serif;font-size:17px;font-weight:700;line-height:1.3;color:var(--ink);margin-bottom:10px;cursor:pointer;transition:color .16s}
+.card-title:hover{color:var(--accent)}
+.card-excerpt{font-size:13px;line-height:1.68;color:var(--muted);flex:1;margin-bottom:14px;font-weight:300;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto}
+.card-author{font-size:11px;color:var(--faint)}
+.card-author strong{color:var(--muted);font-weight:600}
+.card-read-link{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);background:none;border:none;cursor:pointer;transition:opacity .15s;padding:0}
+.card-read-link:hover{opacity:.7}
+
+/* ═══ LOAD MORE ═══ */
+.load-more-wrap{text-align:center;margin-bottom:40px}
+.load-more-btn{background:none;border:2px solid var(--rule);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:11px 32px;border-radius:3px;cursor:pointer;transition:all .18s}
+.load-more-btn:hover{border-color:var(--ink);color:var(--ink)}
+
+/* ═══ EMPTY STATE ═══ */
+.empty-state{grid-column:1/-1;text-align:center;padding:72px 20px;color:var(--muted)}
+.empty-state .es-icon{font-size:40px;margin-bottom:16px;opacity:.3}
+.empty-state h3{font-family:'Libre Baskerville',serif;font-size:20px;margin-bottom:8px;color:var(--ink)}
+.empty-state p{font-size:13.5px;line-height:1.6}
+.empty-state .es-btn{display:inline-block;margin-top:18px;background:var(--accent);color:#fff;border:none;border-radius:3px;padding:10px 22px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+
+/* ═══ SIDEBAR ═══ */
+.sidebar{animation:slideRight .5s ease both;position:sticky;top:82px;align-self:start;max-height:calc(100vh - 100px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--rule) transparent}
+.sidebar::-webkit-scrollbar{width:6px}
+.sidebar::-webkit-scrollbar-track{background:transparent}
+.sidebar::-webkit-scrollbar-thumb{background:var(--rule);border-radius:4px}
+.sb-block{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:22px 24px;margin-bottom:20px;transition:box-shadow .2s ease,border-color .2s ease}
+.sb-block:hover{box-shadow:0 8px 28px rgba(0,0,0,.06);border-color:var(--faint)}
+.sb-block.category-card{display:none}
+.sb-head{font-family:'Barlow Condensed',sans-serif;font-size:10.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.sb-head-ico{font-size:12px;opacity:.85}
+.cat-list{display:flex;flex-direction:column}
+.cat-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin:0 -12px;border-radius:6px;border-bottom:1px solid var(--rule);cursor:pointer;position:relative;transition:background .15s}
+.cat-item:last-child{border-bottom:none}
+.cat-item:hover{background:var(--bg)}
+.cat-item:hover .cat-name{color:var(--accent)}
+.cat-item.active{background:var(--bg)}
+.cat-item.active .cat-name{color:var(--accent)}
+.cat-item.active::before{content:'';position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.cat-name{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);display:flex;align-items:center;gap:8px;transition:color .15s}
+.cat-name::before{content:'';width:3px;height:3px;border-radius:50%;background:var(--accent)}
+.cat-count{font-size:11px;color:var(--faint);background:var(--bg);border-radius:10px;padding:2px 8px;font-weight:600;transition:background .15s,color .15s}
+.cat-item:hover .cat-count,.cat-item.active .cat-count{background:var(--white);color:var(--accent);box-shadow:0 0 0 1px var(--rule) inset}
+.recent-list{display:flex;flex-direction:column}
+.recent-item{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;margin:0 -12px;border-bottom:1px solid var(--rule);border-radius:6px;cursor:pointer;transition:background .15s}
+.recent-item:last-child{border-bottom:none}
+.recent-item:hover{background:var(--bg)}
+.recent-item-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:6px}
+.recent-item-body{flex:1;min-width:0}
+.recent-item-cat{font-family:'Barlow Condensed',sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.recent-item-title{font-family:'Libre Baskerville',serif;font-size:13.5px;font-weight:700;line-height:1.3;color:var(--ink);transition:color .15s}
+.recent-item:hover .recent-item-title{color:var(--accent)}
+.recent-item-date{font-size:10.5px;color:var(--faint);margin-top:4px}
+.search-wrap{position:relative}
+.search-input{width:100%;border:1.5px solid var(--rule);border-radius:24px;padding:11px 42px 11px 18px;font-family:'Barlow',sans-serif;font-size:13.5px;color:var(--ink);background:var(--bg);outline:none;transition:border-color .18s,box-shadow .18s,background .18s}
+.search-input:hover{border-color:var(--faint)}
+.search-input:focus{border-color:var(--accent);background:var(--white);box-shadow:0 0 0 4px rgba(200,56,42,.09)}
+.search-input::placeholder{color:var(--faint)}
+.search-ico{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px;pointer-events:none;transition:color .18s,transform .18s}
+.search-input:focus~.search-ico{color:var(--accent);transform:translateY(-50%) scale(1.08)}
+.search-results{position:absolute;left:0;right:0;margin-top:10px;z-index:40;display:none;max-height:320px;overflow:auto;padding:8px;background:var(--paper);border:1px solid var(--rule);border-radius:12px;box-shadow:0 16px 38px rgba(0,0,0,.13)}
+.search-results.show{display:block;animation:slideDown .16s ease}
+.sr-header{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:6px 10px 8px;display:flex;align-items:center;gap:7px}
+.sr-header::before{content:'';width:14px;height:2px;background:var(--gold)}
+.sr-item{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;cursor:pointer;transition:background .15s}
+.sr-item:hover{background:var(--bg)}
+.sr-item-thumb{width:42px;height:42px;border-radius:8px;flex-shrink:0;overflow:hidden;background:linear-gradient(145deg,#1a1814,#2c2820 55%,#181410);display:flex;align-items:center;justify-content:center;font-family:'Libre Baskerville',serif;font-size:14px;font-weight:700;color:rgba(255,255,255,.45)}
+.sr-item-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.sr-item-body{flex:1;min-width:0}
+.sr-item-title{font-family:'Libre Baskerville',serif;font-size:13px;font-weight:700;color:var(--ink);transition:color .15s;line-height:1.32;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sr-item:hover .sr-item-title{color:var(--accent)}
+.sr-item-meta{font-size:10.5px;color:var(--faint);margin-top:4px;display:flex;align-items:center;gap:6px}
+.sr-item-meta .sr-cat-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.sr-none{font-size:13px;color:var(--faint);padding:20px 10px;text-align:center}
+
+/* ═══ NAV SEARCH TOGGLE (mobile) + MOBILE SEARCH BAR ═══ */
+.nav-search-toggle{display:none;background:none;border:1px solid rgba(255,255,255,.16);border-radius:2px;color:rgba(255,255,255,.55);font-size:12.5px;width:30px;height:30px;align-items:center;justify-content:center;cursor:pointer;align-self:center;transition:border-color .18s,color .18s;line-height:1;-webkit-tap-highlight-color:transparent;outline:none}
+.nav-search-toggle.active{border-color:var(--gold);color:var(--gold)}
+@media (hover:hover){.nav-search-toggle:hover{border-color:var(--gold);color:var(--gold)}}
+@media(max-width:900px){.nav-search-toggle{display:inline-flex}}
+.mobile-search-bar{max-height:0;overflow:hidden;background:var(--ink);transition:max-height .28s ease}
+.mobile-search-bar.open{max-height:260px}
+.mobile-search-bar-inner{padding:14px clamp(1rem,4vw,4rem) 18px}
+.mobile-search-bar .search-input{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#fff}
+.mobile-search-bar .search-input::placeholder{color:rgba(255,255,255,.4)}
+.mobile-search-bar .search-input:focus{background:rgba(255,255,255,.12);border-color:var(--gold);box-shadow:0 0 0 4px rgba(196,154,60,.16)}
+.mobile-search-bar .search-ico{color:rgba(255,255,255,.4)}
+.mobile-search-bar .search-input:focus~.search-ico{color:var(--gold)}
+@media(min-width:901px){.mobile-search-bar{display:none}}
+.about-teaser p{font-size:13px;line-height:1.7;color:var(--muted)}
+.read-about{display:inline-block;margin-top:12px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);background:none;border:none;cursor:pointer;transition:opacity .15s;padding:0}
+.read-about:hover{opacity:.7}
+
+/* ═══ READER ═══ */
+.reader-overlay{display:none;position:fixed;inset:0;background:var(--paper);z-index:300;overflow-y:auto}
+.reader-overlay.open{display:block;animation:fadeIn .2s ease}
+.reading-progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);width:0%;z-index:310;transition:width .1s linear}
+.reader-inner{max-width:1080px;margin:0 auto;padding:40px clamp(1rem,5vw,3rem) 90px}
+.reader-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:36px;flex-wrap:wrap;gap:12px}
+.back-btn{display:inline-flex;align-items:center;gap:6px;font-family:'Barlow Condensed',sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:none;border:none;cursor:pointer;transition:color .16s;padding:0}
+.back-btn:hover{color:var(--accent)}
+.reader-actions{display:flex;align-items:center;gap:10px}
+.share-btn{display:inline-flex;align-items:center;gap:6px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:none;border:1px solid var(--rule);border-radius:20px;padding:6px 14px;cursor:pointer;transition:color .16s,border-color .16s}
+.share-btn:hover{color:var(--accent);border-color:var(--accent)}
+.reader-shell{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:64px;align-items:start}
+.reader-rail{position:sticky;top:32px;display:flex;flex-direction:column;gap:18px}
+.rd-rail-card{background:var(--card,#fff);border:1px solid var(--rule);border-top:3px solid var(--rule);border-radius:12px;padding:22px;box-shadow:0 2px 14px rgba(0,0,0,.04);transition:box-shadow .2s ease}
+.rd-rail-card:hover{box-shadow:0 12px 32px rgba(0,0,0,.08)}
+.rd-rail-cat{font-family:'Barlow Condensed',sans-serif;font-size:10.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.rd-rail-cat::before{content:'';width:20px;height:2px;background:currentColor}
+.rd-rail-author{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.rd-rail-author strong{display:block;color:var(--ink2);font-weight:700;font-size:14px}
+.rd-rail-sub{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);padding-top:15px;margin-top:2px;border-top:1px solid var(--rule)}
+.rd-rail-sub span{display:inline-flex;align-items:center;gap:5px}
+.rd-rail-share{width:100%;justify-content:center;margin-top:18px;gap:8px}
+.rd-rail-more h4{font-family:'Barlow Condensed',sans-serif;font-size:10.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rd-rail-more h4::before{content:'';width:16px;height:2px;background:var(--gold)}
+.rd-rail-item{display:flex;gap:12px;align-items:flex-start;padding:13px 8px;margin:0 -8px;border-radius:8px;cursor:pointer;transition:background .15s}
+.rd-rail-item+.rd-rail-item{border-top:1px solid var(--rule)}
+.rd-rail-item:hover{background:var(--bg)}
+.rd-rail-item-thumb{width:44px;height:44px;border-radius:8px;flex-shrink:0;overflow:hidden;background:linear-gradient(145deg,#1a1814,#2c2820 55%,#181410);display:flex;align-items:center;justify-content:center;font-family:'Libre Baskerville',serif;font-size:15px;font-weight:700;color:rgba(255,255,255,.45)}
+.rd-rail-item-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.rd-rail-item-body{flex:1;min-width:0}
+.rd-rail-item-title{font-family:'Libre Baskerville',serif;font-size:13px;font-weight:700;line-height:1.35;color:var(--ink);transition:color .16s;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.rd-rail-item:hover .rd-rail-item-title{color:var(--accent)}
+.rd-rail-item-cat{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.rd-hero-img{width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;margin-bottom:8px;background:linear-gradient(145deg,#1a1814,#2c2820 55%,#181410)}
+.rd-hero-img img{width:100%;height:100%;object-fit:cover;display:block}
+.rd-cat{font-family:'Barlow Condensed',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin-bottom:18px}
+.rd-cat::before{content:'';width:26px;height:2px;background:currentColor}
+.rd-title{font-family:'Libre Baskerville',serif;font-size:clamp(28px,4.2vw,50px);font-weight:700;line-height:1.1;letter-spacing:-.025em;color:var(--ink);margin-bottom:14px}
+.rd-byline{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted);margin-bottom:24px}
+.rd-byline .rd-byline-avatar{width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Libre Baskerville',serif;font-size:11px;font-weight:700;color:#fff}
+.rd-byline .rd-byline-avatar img{width:100%;height:100%;object-fit:cover}
+.rd-byline strong{color:var(--ink2);font-weight:600}
+.rd-meta{font-size:12.5px;color:var(--faint);margin-bottom:32px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rd-meta strong{color:var(--ink2);font-weight:600}
+.rd-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Libre Baskerville',serif;font-weight:700;font-size:15px;color:#fff;flex-shrink:0;box-shadow:0 0 0 3px var(--bg)}
+.rd-meta-text{display:flex;flex-direction:column;gap:2px}
+.rd-meta-sub{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--faint)}
+.rd-rule{border:none;border-top:2px solid var(--ink);margin-bottom:40px}
+.rd-body{font-family:'Libre Baskerville',serif;font-size:19px;line-height:1.9;color:var(--ink2);max-width:700px}
+.rd-body p:first-child::first-letter{font-size:4.2em;font-weight:700;float:left;line-height:.78;margin:.1em .12em 0 0;color:var(--accent)}
+.rd-related{margin-top:64px;padding-top:40px;border-top:1px solid var(--rule)}
+.rd-related h3{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:20px}
+.rd-related-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px}
+.rd-related-card{cursor:pointer;padding-top:10px;border-top:3px solid var(--rule);transition:border-color .16s}
+.rd-related-card:hover .rd-related-title{color:var(--accent)}
+.rd-related-cat{font-family:'Barlow Condensed',sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+.rd-related-title{font-family:'Libre Baskerville',serif;font-size:14.5px;font-weight:700;line-height:1.35;color:var(--ink);transition:color .16s}
+@media(max-width:880px){
+  .reader-shell{grid-template-columns:1fr;gap: 20px}
+  .reader-rail{position:static;flex-direction:row;flex-wrap:wrap}
+  .rd-rail-card{flex:1;min-width:240px}
+}
+
+/* ═══ ABOUT PAGE ═══ */
+.about-page{display:none;max-width:1320px;margin:0 auto;padding:52px clamp(1rem,4vw,4rem)}
+.about-page.open{display:block;animation:fadeUp .35s ease}
+.about-hero{background:var(--ink);color:#fff;border-radius:8px;padding:60px clamp(2rem,6vw,6rem);margin-bottom:40px;position:relative;overflow:hidden}
+.about-hero::after{content:'NB';position:absolute;right:-20px;top:50%;transform:translateY(-50%);font-family:'Libre Baskerville',serif;font-size:200px;font-weight:700;color:rgba(255,255,255,.03);pointer-events:none}
+.about-hero-kicker{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.about-hero h1{font-family:'Libre Baskerville',serif;font-size:clamp(30px,5vw,54px);font-weight:700;line-height:1.1;letter-spacing:-.02em;margin-bottom:20px}
+.about-hero p{font-size:16px;line-height:1.8;color:rgba(255,255,255,.65);max-width:580px;font-weight:300}
+.about-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:40px}
+.about-card{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:28px 30px;position:relative;overflow:hidden;transition:border-color .25s ease,box-shadow .25s ease}
+.about-card:hover{border-color:var(--gold);box-shadow:0 10px 30px rgba(17,16,9,.08)}
+.about-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--accent)}
+.about-card-icon{font-size:26px;margin-bottom:12px}
+.about-card h3{font-family:'Libre Baskerville',serif;font-size:18px;font-weight:700;margin-bottom:10px;color:var(--ink)}
+.about-card p{font-size:13.5px;line-height:1.75;color:var(--muted);font-weight:300}
+.about-team{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:40px 40px 36px;margin-bottom:40px}
+.about-team-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:36px}
+.about-team-kicker{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.about-team-kicker::before{content:'';width:18px;height:2px;background:var(--accent)}
+.about-team-head h2{font-family:'Libre Baskerville',serif;font-size:clamp(24px,3.4vw,32px);font-weight:700;letter-spacing:-.01em;color:var(--ink);line-height:1.1}
+.about-team-desc{font-size:13px;color:var(--muted);font-weight:300;max-width:280px;text-align:right;line-height:1.6}
+.about-team-section{margin-bottom:44px}
+.about-team-section:last-child{margin-bottom:0}
+.about-team-section-title{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+.about-team-section-name{font-family:'Barlow Condensed',sans-serif;font-size:14.5px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--ink);white-space:nowrap;display:flex;align-items:center;gap:10px}
+.about-team-section-name::before{content:'';width:20px;height:3px;border-radius:2px;background:var(--accent);flex-shrink:0}
+.about-team-section-line{flex:1;height:1px;background:var(--rule)}
+.about-team-section-count{font-family:'Barlow Condensed',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--faint);border:1px solid var(--rule);border-radius:20px;padding:3px 11px;white-space:nowrap}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:26px}
+.team-member{position:relative;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:1px solid var(--rule);box-shadow:0 4px 18px rgba(17,16,9,.07);background:var(--paper);transition:transform .32s cubic-bezier(.2,.7,.3,1),box-shadow .32s ease,border-color .32s ease;animation:fadeUp .5s ease both}
+.team-member::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--gold));z-index:3;transform:scaleX(0);transform-origin:left;transition:transform .4s cubic-bezier(.2,.7,.3,1)}
+.team-member:hover{transform:translateY(-8px);box-shadow:0 26px 46px rgba(17,16,9,.22);border-color:var(--gold)}
+.team-member:hover::before{transform:scaleX(1)}
+.team-photo{position:relative;aspect-ratio:4/5;overflow:hidden;background:linear-gradient(150deg,#2c2820,#1a1814);flex-shrink:0}
+.team-avatar{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Libre Baskerville',serif;font-size:44px;font-weight:700;color:rgba(255,255,255,.95);letter-spacing:.01em}
+.team-avatar::before{content:'';position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 1px,transparent 1px 14px)}
+.team-initial{position:relative;z-index:1;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.team-avatar img{width:100%;height:100%;object-fit:cover;position:relative;transition:transform .55s cubic-bezier(.2,.7,.3,1)}
+.team-member:hover .team-avatar img{transform:scale(1.07)}
+.team-info{position:relative;background:var(--ink);padding:15px 17px 17px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-start}
+.team-role{display:inline-flex;align-items:center;gap:6px;font-family:'Barlow Condensed',sans-serif;font-size:9.5px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:9px}
+.team-role::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.team-name{font-family:'Libre Baskerville',serif;font-size:15px;font-weight:700;color:#fff;line-height:1.34;padding-top:9px;border-top:1px solid rgba(255,255,255,.13)}
+@media(max-width:599px){
+  .about-team{padding:24px 18px}
+  .team-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .team-photo{aspect-ratio:1/1}
+  .team-avatar{font-size:24px}
+  .team-info{padding:9px 10px 10px}
+  .team-role{font-size:8px;letter-spacing:.1em;margin-bottom:5px;gap:4px}
+  .team-role::before{width:4px;height:4px}
+  .team-name{font-size:11.5px;padding-top:5px;line-height:1.25}
+  .team-member:hover{transform:none}
+  .team-member:hover .team-avatar img{transform:none}
+  .about-team-head{flex-direction:column;align-items:flex-start;gap:10px}
+  .about-team-desc{display:none}
+  .about-team-section-title{gap:10px;margin-bottom:18px}
+  .about-team-section-name{font-size:12px}
+  .about-team-section-count{font-size:9.5px;padding:2px 8px}
+}
+.about-contact{background:var(--accent);color:#fff;border-radius:6px;padding:36px 40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;position:relative}
+.about-contact h2{font-family:'Libre Baskerville',serif;font-size:22px;font-weight:700;margin-bottom:6px}
+.about-contact p{font-size:14px;opacity:.8;font-weight:300}
+.contact-email-btn{background:#fff;color:var(--accent);border:none;border-radius:3px;padding:11px 24px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:opacity .18s}
+.contact-email-btn:hover{opacity:.9}
+
+/* ═══ TOAST ═══ */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-family:'Barlow',sans-serif;font-size:13px;font-weight:500;padding:12px 24px;border-radius:4px;box-shadow:0 8px 32px rgba(0,0,0,.35);z-index:9999;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
+.toast.success{background:#14532d;border-left:3px solid var(--adm-green)}
+.toast.error{background:#7f1d1d;border-left:3px solid var(--adm-red)}
+.toast.info{background:#1e3a5f;border-left:3px solid #60a5fa}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ═══ FOOTER ═══ */
+footer{background:var(--ink);border-top:3px solid var(--ink);padding:40px clamp(1rem,4vw,4rem)}
+.footer-inner{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px}
+@media(max-width:640px){.footer-inner{grid-template-columns:1fr}}
+.footer-brand .footer-logo{font-family:'Libre Baskerville',serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:8px}
+.footer-brand p{font-size:12.5px;color:rgba(255,255,255,.35);line-height:1.7;font-weight:300;max-width:480px}
+.footer-nav h4{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:12px}
+.footer-nav-links{display:flex;flex-direction:column;gap:6px}
+.footer-nav-links button{background:none;border:none;color:rgba(255,255,255,.45);font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;text-align:left;transition:color .15s;padding:0}
+.footer-nav-links button:hover{color:rgba(255,255,255,.8)}
+.footer-copy{font-size:11px;color:rgba(255,255,255,.2);margin-top:32px;padding-top:20px;border-top:1px solid rgba(255,255,255,.07);max-width:1320px;margin-left:auto;margin-right:auto;padding-left:clamp(1rem,4vw,4rem);padding-right:clamp(1rem,4vw,4rem);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen">
+  <div class="loading-logo">Newsbytes</div>
+  <div class="loading-spinner"></div>
+  <div class="loading-sub">Loading stories…</div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span id="live-date"></span>
+    <span class="topbar-sep">|</span>
+    <span>ICCT COLLEGES</span>
+  </div>
+</div>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="mast-kicker-row">
+      <!-- Mobile: left logo flanks kicker -->
+      <div class="mast-logo-slot" id="mast-slot-left-k">
+        <img class="mast-logo-img" id="mast-img-left-k" src="" alt="">
+      </div>
+      <div class="mast-kicker">Campus · Est. 2010</div>
+      <!-- Mobile: right logo flanks kicker -->
+      <div class="mast-logo-slot" id="mast-slot-right-k">
+        <img class="mast-logo-img" id="mast-img-right-k" src="" alt="">
+      </div>
+    </div>
+    <!-- Desktop: logos flank the title -->
+    <div class="mast-title-row">
+      <div class="mast-logo-slot" id="mast-slot-left">
+        <img class="mast-logo-img" id="mast-img-left" src="" alt="">
+      </div>
+      <div class="logo" id="logo-center" onclick="goHome()">Newsbytes</div>
+      <div class="mast-logo-slot" id="mast-slot-right">
+        <img class="mast-logo-img" id="mast-img-right" src="" alt="">
+      </div>
+    </div>
+    <p class="mast-tagline">The pules of campus, Delivered in bytes</p>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav class="nav-wrap">
+  <div class="nav-row">
+    <div class="nav-inner" id="nav-inner">
+      <button class="nav-btn active" onclick="filterCat('All',this)" data-cat="All">All Stories</button>
+    </div>
+    <div class="nav-actions">
+      <button class="nav-search-toggle" id="nav-search-toggle" onclick="toggleMobileSearch()" aria-label="Search stories">🔍</button>
+      <button class="nav-about" id="nav-about-btn" onclick="showAbout()">About Us</button>
+    </div>
+  </div>
+  <div class="mobile-search-bar" id="mobile-search-bar">
+    <div class="mobile-search-bar-inner">
+      <div class="search-wrap">
+        <input class="search-input" id="search-input-m" type="text" placeholder="Search stories…" onfocus="refreshSearchSuggestions('search-input-m','search-results-m')" oninput="doSearch(this.value,'search-results-m')">
+        <span class="search-ico">🔍</span>
+      </div>
+      <div class="search-results" id="search-results-m"></div>
+    </div>
+  </div>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker-wrap"><div class="ticker-track" id="ticker"></div></div>
+
+<!-- FEED PAGE -->
+<div class="page-shell" id="feed-page">
+  <div class="main-col">
+    <div id="hero-wrap"></div>
+    <div class="sec-head"><h2 id="feed-label">Latest Stories</h2><div class="line"></div></div>
+    <div class="date-filter-bar" id="date-filter-bar">
+      <span class="df-label">Filter by date:</span>
+      <select id="df-year" onchange="applyDateFilter()"><option value="">Year</option></select>
+      <select id="df-month" onchange="applyDateFilter()">
+        <option value="">Month</option>
+        <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+        <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+        <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+        <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+      </select>
+      <select id="df-day" onchange="applyDateFilter()">
+        <option value="">Day</option>
+        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+        <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+        <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+        <option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option>
+        <option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+        <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option>
+        <option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option>
+        <option value="29">29</option><option value="30">30</option><option value="31">31</option>
+      </select>
+      <button class="df-clear" id="df-clear-btn" onclick="clearDateFilter()" style="display:none">Clear ✕</button>
+    </div>
+    <div class="feed-scroll">
+      <div class="art-grid" id="art-grid"></div>
+      <div class="load-more-wrap" id="load-more-wrap" style="display:none">
+        <button class="load-more-btn" onclick="loadMore()">Load More Stories</button>
+      </div>
+    </div>
+  </div>
+  <aside class="sidebar">
+    <div class="sb-block">
+      <div class="sb-head"><span class="sb-head-ico">🔍</span>Search</div>
+      <div class="search-wrap">
+        <input class="search-input" id="search-input" type="text" placeholder="Search stories…" onfocus="refreshSearchSuggestions('search-input','search-results')" oninput="doSearch(this.value,'search-results')">
+        <span class="search-ico">🔍</span>
+      </div>
+      <div class="search-results" id="search-results"></div>
+    </div>
+    <div class="sb-block category-card">
+      <div class="sb-head"><span class="sb-head-ico">🏷️</span>Browse by Category</div>
+      <div class="cat-list" id="sb-cats"></div>
+    </div>
+    <div class="sb-block">
+      <div class="sb-head"><span class="sb-head-ico">🕒</span>Recent Stories</div>
+      <div class="recent-list" id="sb-recent"></div>
+    </div>
+    <div class="sb-block about-teaser">
+      <div class="sb-head"><span class="sb-head-ico">ℹ️</span>About Newsbytes</div>
+      <p>The official student-run publication of our university — keeping the campus community informed and connected.</p>
+      <button class="read-about" onclick="showAbout()">Learn More →</button>
+    </div>
+  </aside>
+</div>
+
+<!-- ABOUT PAGE -->
+<div class="about-page" id="about-page">
+  <div class="about-hero" style="position:relative">
+    <div class="about-hero-kicker" id="ab-kicker">Est. 2010 · Student Publication</div>
+    <h1 id="ab-title">About Newsbytes</h1>
+    <p id="ab-desc">We are the official campus news publication — student-written, student-run, and dedicated to keeping our university community informed, inspired, and connected.</p>
+  </div>
+  <div class="about-grid">
+    <div class="about-card"><div class="about-card-icon">📰</div><h3>Our Mission</h3><p id="ab-mission"></p></div>
+    <div class="about-card"><div class="about-card-icon">🔭</div><h3>Our Vision</h3><p id="ab-vision"></p></div>
+  </div>
+  <div class="about-team">
+    <div class="about-team-head">
+      <div>
+        <div class="about-team-kicker">Meet The Staff</div>
+        <h2>Our Team</h2>
+      </div>
+      <p class="about-team-desc">The students behind every story, photo, and headline.</p>
+    </div>
+    <div id="team-grid"></div>
+  </div>
+  <div class="about-contact" style="position:relative">
+    <div>
+      <h2 id="ab-contact-title">Get In Touch</h2>
+      <p id="ab-contact-desc">Have a story tip, correction, or want to join the team? We'd love to hear from you.</p>
+    </div>
+    <a href="https://www.facebook.com/NewsbytesICCT" target="blank">
+      <button class="contact-email-btn" id="ab-contact-btn">Contact Us</button>
+    </a>
+  </div>
+</div>
+
+<!-- READER -->
+<div class="reading-progress" id="reading-progress"></div>
+<div class="reader-overlay" id="reader">
+  <div class="reader-inner">
+    <div class="reader-nav">
+      <button class="back-btn" onclick="closeReader()">← Back to Newsbytes</button>
+      <div class="reader-actions">
+      </div>
+    </div>
+    <div class="reader-shell">
+      <div id="rd-content"></div>
+      <div class="reader-rail" id="rd-rail"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="footer-logo">Newsbytes</div>
+      <p>The official student-run campus publication. Keeping the university community informed and connected.</p>
+    </div>
+    <div class="footer-nav">
+      <h4>Sections</h4>
+      <div class="footer-nav-links" id="footer-cats">
+        <button onclick="filterCatByName('All')">All Stories</button>
+      </div>
+    </div>
+    <div class="footer-nav">
+      <h4>Publication</h4>
+      <div class="footer-nav-links">
+        <button onclick="showAbout()">About Us</button>
+        <a href="https://www.facebook.com/NewsbytesICCT" target="blank">
+          <button>Contact</button>
+        </a>
+        <button onclick="toast('Email us at icctnewsbytes@gmail.com to join the team!','info')">Join the Team</button>
+      </div>
+    </div>
+  </div>
+  <div class="footer-copy">
+    <span>© <span id="footer-year"></span> Newsbytes · ICCT Colleges</span>
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════════════════
+     FIREBASE SDK
+════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, doc, getDoc, onSnapshot, orderBy, query, limit, startAfter, where, getCountFromServer }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+// This is a read-only public front end. All create/edit/delete actions live
+// in the separate admin dashboard (admin.html), which requires a signed-in
+// admin account and is not linked from this page.
+
+// ══════════════════════════════════════════
+//              FIREBASE CONFIG
+// ══════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyAwHSG4XsQ2OGLnc3Ejrtw4DTAUaeidzL8",
+  authDomain: "newsbytes-5ed18.firebaseapp.com",
+  projectId: "newsbytes-5ed18",
+  storageBucket: "newsbytes-5ed18.firebasestorage.app",
+  messagingSenderId: "931591599948",
+  appId: "1:931591599948:web:46a4835e85c42bba8e41e9",
+  measurementId: "G-9PH08C9FBB"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// ── GLOBALS ──
+let articles = [];       // combined view used everywhere (liveArticles + pagedArticles)
+let liveArticles = [];   // bounded real-time window (most recent LIVE_WINDOW posts)
+let pagedArticles = [];  // older posts fetched on-demand via loadMore()
+function rebuildArticles(){
+  const liveIds = new Set(liveArticles.map(a=>a.id));
+  pagedArticles = pagedArticles.filter(a=>!liveIds.has(a.id)); // drop dupes if a paged post re-enters the live window
+  articles = [...liveArticles, ...pagedArticles];
+}
+let teamMembers = [];
+let teamSections = [];
+let aboutData = {};
+let contactData = {};
+let filter = 'All';
+let dateFilter = { year:'', month:'', day:'' };
+let currentPage = 1;
+let currentReaderId = null;
+const PAGE_SIZE = 6;
+const LIVE_WINDOW = 60; // how many recent articles stay "live" (real-time)
+let lastDocSnap = null;      // pagination cursor for the unfiltered feed
+let catCursors = {};         // pagination cursor per category
+let exhausted = { All:false };
+let catCounts = {};          // cached true totals per category (from Firestore aggregation)
+let loadingMore = false;
+// Categories are managed from the admin dashboard (settings/categories doc).
+// This default is only used until that doc loads for the first time, or if
+// it doesn't exist yet, so the site still looks right out of the box.
+const DEFAULT_CATEGORIES = [
+  {name:'Academics',color:'#6a4fc9'},{name:'Events',color:'#b5762e'},{name:'Sports',color:'#2f7d5c'},
+  {name:'Student Life',color:'#c8382a'},{name:'Announcements',color:'#946f2e'},
+  {name:'Editorial',color:'#1a2a4a'},{name:'Column',color:'#8a5a3c'},{name:'Sci-Tech',color:'#2b6e8c'}
+];
+let CATS = ['All',...DEFAULT_CATEGORIES.map(c=>c.name)];
+let CAT_COLORS = Object.fromEntries(DEFAULT_CATEGORIES.map(c=>[c.name,c.color]));
+function catColor(cat){ return CAT_COLORS[cat] || 'var(--accent)'; }
+function readTime(body){ const words=(body||'').trim().split(/\s+/).filter(Boolean).length; return Math.max(1,Math.round(words/200))+' min read'; }
+
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape'){ closeReader(); }
+});
+
+window.handleLogoTap = function(){ goHome(); };
+
+// ── TOAST ──
+window.toast = function(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+type+' show';
+  setTimeout(()=>t.classList.remove('show'),4200);
+};
+
+// ── LOADING ──
+function hideLoading(){ document.getElementById('loading-screen').classList.add('hidden'); }
+
+// ── INIT ──
+document.getElementById('live-date').textContent =
+  new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+// ══════════════════════════════════════════
+//  FIRESTORE REAL-TIME LISTENER
+//  Bounded to the most recent LIVE_WINDOW posts so read costs and
+//  payload size stay flat no matter how large the collection grows.
+//  Older posts are fetched on-demand via loadMore() (see below).
+// ══════════════════════════════════════════
+const articlesCol = collection(db,'articles');
+const articlesQ = query(articlesCol, orderBy('createdAt','desc'), limit(LIVE_WINDOW));
+let hashRouted=false;
+onSnapshot(articlesQ, snap => {
+  liveArticles = snap.docs.map(d=>({id:d.id,...d.data()}));
+  lastDocSnap = snap.docs[snap.docs.length-1] || null;
+  exhausted.All = snap.docs.length < LIVE_WINDOW;
+  rebuildArticles();
+  render();
+  hideLoading();
+  refreshCatCounts();
+  refreshSearchSuggestions('search-input','search-results');
+  refreshSearchSuggestions('search-input-m','search-results-m');
+  if(!hashRouted){ hashRouted=true; checkHashRoute(); }
+});
+
+// ── DEEP LINKING ──
+// Copied/shared story links use a canonical ?article=<id> query string
+// (e.g. https://yoursite.com/?article=abc123). Query strings — unlike hash
+// fragments — are actually sent to the server, which is what lets the
+// "renderPage" Cloud Function read the article ID and inject the correct
+// Open Graph tags before Facebook/Messenger/etc. fetch the page.
+//
+// Old links using the previous #<article-id> hash format are still
+// supported as a fallback so previously-shared links don't break.
+//
+// On load (and on back/forward navigation) we check for an article id and
+// open that story — fetching it directly from Firestore if it's older than
+// the live window so shared links always work, no matter how far back the
+// story is.
+function getRouteArticleId(){
+  const fromQuery = new URLSearchParams(location.search).get('article');
+  if(fromQuery) return fromQuery;
+  const fromHash = location.hash.slice(1);
+  return fromHash || null;
+}
+async function checkHashRoute(){
+  const id=getRouteArticleId();
+  if(!id) return;
+  let a=articles.find(x=>x.id===id);
+  if(!a){
+    try{
+      const snap=await getDoc(doc(db,'articles',id));
+      if(snap.exists()){
+        a={id:snap.id,...snap.data()};
+        if(!articles.some(x=>x.id===a.id)){ pagedArticles.push(a); rebuildArticles(); }
+      }
+    }catch(e){ /* ignore — story may have been removed */ }
+  }
+  if(a) openReader(a.id);
+}
+window.addEventListener('hashchange', checkHashRoute);
+window.addEventListener('popstate', checkHashRoute);
+
+// True per-category totals via aggregation queries — cheap (1 read-equivalent
+// each) and accurate regardless of how many articles are actually loaded
+// client-side, so the sidebar counts never drift as the collection grows.
+let catCountTimer=null;
+function refreshCatCounts(){
+  clearTimeout(catCountTimer);
+  catCountTimer=setTimeout(async ()=>{
+    try{
+      const cats=CATS.slice(1);
+      const results=await Promise.all(cats.map(c=>getCountFromServer(query(articlesCol, where('category','==',c)))));
+      cats.forEach((c,i)=>{ catCounts[c]=results[i].data().count; });
+      renderSidebar();
+    }catch(e){ /* offline or unsupported — keep last known counts */ }
+  },400);
+}
+
+onSnapshot(doc(db,'settings','about'), snap => {
+  aboutData = snap.exists() ? snap.data() : {};
+  renderAbout();
+});
+onSnapshot(doc(db,'settings','contact'), snap => {
+  contactData = snap.exists() ? snap.data() : {};
+  renderAbout();
+});
+onSnapshot(collection(db,'team'), snap => {
+  teamMembers = snap.docs.map(d=>({id:d.id,...d.data()}))
+    .sort((a,b)=>(a.order||0)-(b.order||0));
+  renderAbout();
+});
+onSnapshot(doc(db,'settings','teamSections'), snap => {
+  teamSections = snap.exists() && Array.isArray(snap.data().list) ? snap.data().list : [];
+  renderAbout();
+});
+onSnapshot(doc(db,'settings','logos'), snap => {
+  const d = snap.exists() ? snap.data() : {};
+  ['left','right'].forEach(side=>{
+    const url = d[side]||'';
+    ['mast-img-'+side,'mast-img-'+side+'-k'].forEach(imgId=>{
+      const img=document.getElementById(imgId); if(!img)return;
+      if(url){ img.src=url; img.classList.add('show'); }
+      else   { img.src=''; img.classList.remove('show'); }
+    });
+  });
+});
+
+// Categories are managed from the admin dashboard. Rebuilding the nav/footer
+// here means adding, renaming, or recoloring a category shows up on the
+// public site immediately, with no code changes needed.
+onSnapshot(doc(db,'settings','categories'), snap => {
+  const list = (snap.exists() && Array.isArray(snap.data().list) && snap.data().list.length) ? snap.data().list : DEFAULT_CATEGORIES;
+  CATS = ['All', ...list.map(c=>c.name)];
+  CAT_COLORS = Object.fromEntries(list.map(c=>[c.name,c.color]));
+  renderCategoryNav(list);
+  render();
+  refreshCatCounts();
+});
+
+function renderCategoryNav(list){
+  const navInner=document.getElementById('nav-inner');
+  navInner.querySelectorAll('.nav-btn[data-dynamic]').forEach(b=>b.remove());
+  const activeCat=filter;
+  list.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.className='nav-btn'+(activeCat===c.name?' active':'');
+    btn.dataset.cat=c.name;
+    btn.dataset.dynamic='1';
+    btn.textContent=c.name;
+    btn.onclick=()=>filterCat(c.name,btn);
+    navInner.appendChild(btn);
+  });
+  if(activeCat!=='All'){
+    navInner.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.cat===activeCat));
+  }
+  const footerCats=document.getElementById('footer-cats');
+  footerCats.querySelectorAll('button[data-dynamic]').forEach(b=>b.remove());
+  list.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.dataset.dynamic='1';
+    btn.textContent=c.name;
+    btn.onclick=()=>filterCatByName(c.name);
+    footerCats.appendChild(btn);
+  });
+}
+
+// ══════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════
+// Returns the category's hero (latest post — always shown, unaffected by the
+// date filter) plus the grid list below it (category + date filtered, and
+// never includes the hero article so it isn't duplicated).
+function getHeroAndGrid(){
+  const catList = filter==='All'?articles:articles.filter(a=>a.category===filter);
+  const hero = catList[0]||null;
+  const dateActive = !!(dateFilter.year||dateFilter.month||dateFilter.day);
+  // Normal browsing: hide the hero from the grid below (it's already shown up top).
+  // Once a date filter is active, put it back in the pool — if its date matches,
+  // it should reappear in the results alongside every other matching story.
+  let gridList = (hero && !dateActive) ? catList.filter(a=>a.id!==hero.id) : catList.slice();
+  if(dateActive){
+    gridList = gridList.filter(a=>{
+      const d=new Date(a.createdAt||0);
+      if(dateFilter.year && String(d.getFullYear())!==dateFilter.year) return false;
+      if(dateFilter.month && String(d.getMonth()+1)!==dateFilter.month) return false;
+      if(dateFilter.day && String(d.getDate())!==dateFilter.day) return false;
+      return true;
+    });
+  }
+  return {hero,gridList};
+}
+
+function renderTicker(){
+  const src=articles.length?articles.slice(0,12):[{title:'No stories yet — stay tuned!'}];
+  document.getElementById('ticker').innerHTML=[...src,...src].map(a=>`<span class="ticker-item">${a.title}</span>`).join('');
+}
+function renderSidebar(){
+  document.getElementById('sb-cats').innerHTML=CATS.slice(1).map(c=>`
+    <div class="cat-item${filter===c?' active':''}" onclick="filterCatByName('${c}')">
+      <span class="cat-name">${c}</span><span class="cat-count">${catCounts[c]??articles.filter(a=>a.category===c).length}</span>
+    </div>`).join('');
+  document.getElementById('sb-recent').innerHTML=articles.slice(0,5).map(a=>`
+    <div class="recent-item" onclick="openReader('${a.id}')">
+      <span class="recent-item-dot" style="background:${catColor(a.category)}"></span>
+      <div class="recent-item-body">
+        <div class="recent-item-cat" style="color:${catColor(a.category)}">${a.category}</div>
+        <div class="recent-item-title">${a.title}</div>
+        <div class="recent-item-date">${a.date}</div>
+      </div>
+    </div>`).join('')||'<div style="font-size:13px;color:var(--faint)">No stories yet.</div>';
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    const cat=b.dataset.cat; b.querySelector('.nav-count')?.remove();
+    if(cat&&cat!=='All'){const n=catCounts[cat]??articles.filter(a=>a.category===cat).length;if(n>0){const badge=document.createElement('span');badge.className='nav-count';badge.textContent=n;b.appendChild(badge);}}
+  });
+}
+
+// ── DATE FILTER ──
+function populateYearFilterOptions(){
+  const sel=document.getElementById('df-year');
+  const years=[...new Set(articles.map(a=>new Date(a.createdAt||0).getFullYear()))].sort((a,b)=>b-a);
+  const current=sel.value;
+  sel.innerHTML='<option value="">Year</option>'+years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  sel.value=current;
+}
+window.applyDateFilter = function(){
+  dateFilter.year=document.getElementById('df-year').value;
+  dateFilter.month=document.getElementById('df-month').value;
+  dateFilter.day=document.getElementById('df-day').value;
+  document.getElementById('df-clear-btn').style.display=(dateFilter.year||dateFilter.month||dateFilter.day)?'inline-block':'none';
+  currentPage=1;
+  render();
+};
+window.clearDateFilter = function(){
+  dateFilter={year:'',month:'',day:''};
+  document.getElementById('df-year').value='';
+  document.getElementById('df-month').value='';
+  document.getElementById('df-day').value='';
+  document.getElementById('df-clear-btn').style.display='none';
+  currentPage=1;
+  render();
+};
+
+function render(){
+  renderTicker(); renderSidebar();
+  populateYearFilterOptions();
+  const {hero:h,gridList}=getHeroAndGrid();
+  const heroW=document.getElementById('hero-wrap');
+  if(!h){ heroW.innerHTML=''; renderGrid([]); return; }
+  const imgH=h.img?`<img src="${h.img}" alt="${h.title}" loading="lazy" onerror="this.style.display='none'">${h.imgCredit?`<span class="img-credit">Credits to: ${h.imgCredit}</span>`:''}`:`<span class="no-img-lbl">Featured Story</span>`;
+  heroW.innerHTML=`
+    <div class="hero">
+      <div class="hero-text">
+        <div class="hero-cat-tag" style="color:${catColor(h.category)}">${h.category}</div>
+        <h1 class="hero-title" onclick="openReader('${h.id}')">${h.title}</h1>
+        <p class="hero-excerpt">${h.excerpt||trunc(h.body,200)}</p>
+        <div class="hero-meta"><strong>${h.author||'Staff Writer'}</strong><span style="opacity:.4">·</span><span>${h.date}</span></div>
+        <button class="read-more" onclick="openReader('${h.id}')">Read Full Story →</button>
+      </div>
+      <div class="hero-img">${imgH}</div>
+    </div>`;
+  renderGrid(gridList);
+}
+
+function renderGrid(list){
+  const gridEl=document.getElementById('art-grid');
+  const lmWrap=document.getElementById('load-more-wrap');
+  const rest=list||getHeroAndGrid().gridList;
+  const visible=rest.slice(0,currentPage*PAGE_SIZE);
+  lmWrap.style.display=(rest.length>currentPage*PAGE_SIZE || !exhausted.All)?'block':'none';
+  if(!rest.length){
+    const filtered=dateFilter.year||dateFilter.month||dateFilter.day;
+    gridEl.innerHTML=filtered
+      ? `<div class="empty-state"><div class="es-icon">🗓️</div><h3>No stories match this date</h3><p>Try a different year, month, or day.</p><button class="es-btn" onclick="clearDateFilter()">Clear Filter</button></div>`
+      : `<div class="empty-state"><div class="es-icon">📭</div><h3>No stories here yet</h3><p>Check back soon.</p></div>`;
+    return;
+  }
+  gridEl.innerHTML=visible.map((a,i)=>`
+    <div class="card" style="animation-delay:${i*.04}s">
+      <div class="card-accent" style="background:${catColor(a.category)}"></div>
+      ${a.img?`<div class="card-thumb" onclick="openReader('${a.id}')"><img src="${a.img}" alt="${a.title}" loading="lazy" onerror="this.parentElement.remove()"></div>${a.imgCredit?`<div class="card-img-credit">Credits to: ${a.imgCredit}</div>`:''}`:''}
+      <div class="card-body">
+        <div class="card-top">
+          <div class="card-cat-lbl" style="color:${catColor(a.category)}">${a.category}</div>
+          <div class="card-date-lbl">${a.date}<span class="rt-dot">·</span>${readTime(a.body)}</div>
+        </div>
+        <h2 class="card-title" onclick="openReader('${a.id}')">${a.title}</h2>
+        <p class="card-excerpt">${a.excerpt||trunc(a.body,120)}</p>
+        <div class="card-footer">
+          <div class="card-author"><strong>${a.author||'Staff Writer'}</strong></div>
+          <button class="card-read-link" onclick="openReader('${a.id}')">Read →</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderAbout(){
+  const d={...{kicker:'Est. 2010 · Student Publication',title:'About Newsbytes',desc:'We are the official campus news publication.',mission:'To deliver accurate, timely, and relevant campus news.',vision:'To be the campus\'s most trusted student-led news platform.',goals:'To grow student journalism and strengthen our university community.'},...aboutData};
+  const c={...{title:'Get In Touch',desc:'Have a story tip or want to join the team?',btnLabel:'Contact Us',email:'newsbytes@university.edu'},...contactData};
+  document.getElementById('ab-kicker').textContent=d.kicker;
+  document.getElementById('ab-title').textContent=d.title;
+  document.getElementById('ab-desc').textContent=d.desc;
+  document.getElementById('ab-mission').textContent=d.mission;
+  document.getElementById('ab-vision').textContent=d.vision;
+  document.getElementById('ab-contact-title').textContent=c.title;
+  document.getElementById('ab-contact-desc').textContent=c.desc;
+  document.getElementById('ab-contact-btn').textContent=c.btnLabel;
+  const tg=document.getElementById('team-grid');
+  const sectionTitle=(name,count)=>`
+    <div class="about-team-section-title">
+      <span class="about-team-section-name">${name}</span>
+      <span class="about-team-section-line"></span>
+      <span class="about-team-section-count">${count} ${count===1?'Member':'Members'}</span>
+    </div>`;
+  const memberCard=m=>`
+    <div class="team-member">
+      <div class="team-photo">
+        <div class="team-avatar" style="background:${m.photo?'transparent':m.color||'linear-gradient(150deg,#2c2820,#1a1814)'}">
+          ${m.photo?`<img src="${m.photo}" alt="${m.name}">`:`<span class="team-initial">${m.name.charAt(0).toUpperCase()}</span>`}
+        </div>
+      </div>
+      <div class="team-info">
+        <span class="team-role">${m.role}</span>
+        <div class="team-name">${m.name}</div>
+      </div>
+    </div>`;
+  if(!teamMembers.length){
+    tg.innerHTML='<p style="color:var(--muted);font-size:13px">No team members yet.</p>';
+  } else if(!teamSections.length){
+    // No sections defined yet — show everyone in one grid.
+    tg.innerHTML=`<div class="team-grid">${teamMembers.map(memberCard).join('')}</div>`;
+  } else {
+    let html='';
+    teamSections.forEach(s=>{
+      const members=teamMembers.filter(m=>m.section===s.id);
+      if(!members.length)return;
+      html+=`
+        <div class="about-team-section">
+          ${sectionTitle(s.name, members.length)}
+          <div class="team-grid">${members.map(memberCard).join('')}</div>
+        </div>`;
+    });
+    const unassigned=teamMembers.filter(m=>!m.section||!teamSections.some(s=>s.id===m.section));
+    if(unassigned.length){
+      html+=`
+        <div class="about-team-section">
+          ${sectionTitle('General', unassigned.length)}
+          <div class="team-grid">${unassigned.map(memberCard).join('')}</div>
+        </div>`;
+    }
+    tg.innerHTML=html;
+  }
+}
+
+function trunc(s,n){ if(!s)return''; return s.length>n?s.slice(0,n).trim()+'…':s; }
+
+// ── READER ──
+function scrollProgressHandler(){
+  const el=document.getElementById('reader');
+  const bar=document.getElementById('reading-progress');
+  const max=el.scrollHeight-el.clientHeight;
+  bar.style.width=(max>0?Math.min(100,(el.scrollTop/max)*100):0)+'%';
+}
+window.shareArticle = function(){
+  const url=location.origin+location.pathname+'?article='+currentReaderId;
+  const done=()=>toast('Link copied! ✓','success');
+  const fail=()=>toast('Could not copy — select and copy the URL manually.','error');
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(url).then(done).catch(()=>fallbackCopy(url,done,fail));
+  } else {
+    fallbackCopy(url,done,fail);
+  }
+};
+function fallbackCopy(text,done,fail){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    const ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+    ok?done():fail();
+  }catch(e){ fail(); }
+}
+window.openReader = function(id){
+  const a=articles.find(x=>x.id===id); if(!a)return;
+  currentReaderId=id;
+  const paras=a.body.split('\n').filter(p=>p.trim()).map(p=>`<p>${p}</p>`).join('');
+  const heroH=a.img?`<div class="rd-hero-img"><img src="${a.img}" alt="${a.title}" onerror="this.parentElement.remove()"></div>${a.imgCredit?`<div class="rd-hero-img-credit">Credits to: ${a.imgCredit}</div>`:''}`:'';
+  const initial=(a.author||'S').charAt(0).toUpperCase();
+  const related=articles.filter(x=>x.category===a.category && x.id!==id).slice(0,3);
+  const relatedIds=new Set([id,...related.map(r=>r.id)]);
+  const more=articles.filter(x=>!relatedIds.has(x.id)).slice(0,4);
+  const moreH=more.length?`
+    <div class="rd-rail-card rd-rail-more">
+      <h4>Latest Stories</h4>
+      ${more.map(r=>{
+        const rInitial=(r.title||'?').trim().charAt(0).toUpperCase();
+        const rThumb=r.img?`<img src="${r.img}" alt="" loading="lazy" onerror="this.parentElement.textContent='${rInitial}'">`:rInitial;
+        return `
+        <div class="rd-rail-item" onclick="openReader('${r.id}')">
+          <div class="rd-rail-item-thumb">${rThumb}</div>
+          <div class="rd-rail-item-body">
+            <div class="rd-rail-item-cat" style="color:var(--accent)">${r.category}</div>
+            <div class="rd-rail-item-title">${r.title}</div>
+          </div>
+        </div>`;}).join('')}
+    </div>`:'';
+  const relatedH=related.length?`
+    <div class="rd-related">
+      <h3>More in ${a.category}</h3>
+      <div class="rd-related-grid">
+        ${related.map(r=>`
+          <div class="rd-related-card" style="border-color:var(--accent)" onclick="openReader('${r.id}')">
+            <div class="rd-related-cat" style="color:var(--accent)">${r.category}</div>
+            <div class="rd-related-title">${r.title}</div>
+          </div>`).join('')}
+      </div>
+    </div>`:'';
+  document.getElementById('rd-content').innerHTML=`
+    ${heroH}
+    <div class="rd-cat" style="color:var(--accent)">${a.category}</div>
+    <h1 class="rd-title">${a.title}</h1>
+    <div class="rd-byline">
+      <span class="rd-byline-avatar" style="background:var(--accent)">${initial}</span>
+      By <strong>${a.author||'Staff Writer'}</strong> <span>· ${a.date} · ${readTime(a.body)}</span>
+    </div>
+    <hr class="rd-rule">
+    <div class="rd-body">${paras}</div>
+    ${relatedH}`;
+  document.getElementById('rd-rail').innerHTML=`
+    <div class="rd-rail-card" style="border-top-color:var(--accent)">
+      <div class="rd-rail-cat" style="color:var(--accent)">${a.category}</div>
+      <div class="rd-rail-author">
+        <div class="rd-avatar" style="background:var(--accent)">${initial}</div>
+        <strong>${a.author||'Staff Writer'}</strong>
+      </div>
+      <div class="rd-rail-sub">
+        <span>🗓 ${a.date}</span>
+        <span>⏱ ${readTime(a.body)}</span>
+      </div>
+      <button class="share-btn rd-rail-share" onclick="shareArticle()">🔗 Copy Link</button>
+    </div>
+    ${moreH}`;
+  const readerEl=document.getElementById('reader');
+  readerEl.classList.add('open');
+  readerEl.scrollTop=0;
+  document.getElementById('reading-progress').style.width='0%';
+  readerEl.removeEventListener('scroll',scrollProgressHandler);
+  readerEl.addEventListener('scroll',scrollProgressHandler);
+  try{ history.replaceState(null,'',location.pathname+'?article='+id); }catch(e){}
+};
+window.closeReader = function(){
+  document.getElementById('reader').classList.remove('open');
+  document.getElementById('reader').removeEventListener('scroll',scrollProgressHandler);
+  currentReaderId=null;
+  try{ history.replaceState(null,'',location.pathname); }catch(e){}
+};
+
+// ── NAV ──
+window.filterCat = function(cat,btn){
+  filter=cat; currentPage=1;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  document.getElementById('nav-about-btn').classList.remove('active');
+  document.getElementById('feed-page').style.display='';
+  document.getElementById('about-page').classList.remove('open');
+  document.getElementById('feed-label').textContent=cat==='All'?'Latest Stories':cat;
+  render(); window.scrollTo({top:0,behavior:'smooth'});
+};
+window.filterCatByName = function(cat){
+  const btn=[...document.querySelectorAll('.nav-btn')].find(b=>b.dataset.cat===cat);
+  filterCat(cat,btn||null);
+};
+window.loadMore = async function(){
+  const rest=getHeroAndGrid().gridList;
+  const shown=currentPage*PAGE_SIZE;
+  if(rest.length>shown){ currentPage++; renderGrid(); return; } // already have more loaded — just reveal it
+  if(exhausted.All||loadingMore) return; // nothing left anywhere
+  loadingMore=true;
+  const lmBtn=document.querySelector('.load-more-btn');
+  if(lmBtn){ lmBtn.textContent='Loading…'; lmBtn.disabled=true; }
+  try{
+    const q=query(articlesCol, orderBy('createdAt','desc'), startAfter(lastDocSnap), limit(LIVE_WINDOW));
+    const snap=await getDocs(q);
+    const known=new Set(articles.map(a=>a.id));
+    snap.docs.forEach(d=>{ if(!known.has(d.id)) pagedArticles.push({id:d.id,...d.data()}); });
+    lastDocSnap=snap.docs[snap.docs.length-1]||lastDocSnap;
+    exhausted.All=snap.docs.length<LIVE_WINDOW;
+    rebuildArticles();
+    currentPage++;
+    render();
+  } catch(e){ toast('Could not load more stories.','error'); }
+  loadingMore=false;
+  if(lmBtn){ lmBtn.textContent='Load More Stories'; lmBtn.disabled=false; }
+};
+
+window.showAbout = function(){
+  document.getElementById('feed-page').style.display='none';
+  document.getElementById('about-page').classList.add('open');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('nav-about-btn').classList.add('active');
+  closeReader(); window.scrollTo({top:0,behavior:'smooth'});
+};
+window.goHome = function(){
+  closeReader();
+  document.getElementById('about-page').classList.remove('open');
+  document.getElementById('feed-page').style.display='';
+  document.getElementById('nav-about-btn').classList.remove('active');
+  filter='All'; currentPage=1;
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  document.getElementById('feed-label').textContent='Latest Stories';
+  render(); window.scrollTo({top:0,behavior:'smooth'});
+};
+
+// ── SEARCH ──
+let searchTimer=null;
+window.doSearch = function(q, boxId){
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>doSearchNow(q, boxId||'search-results'),150);
+};
+window.refreshSearchSuggestions = function(inputId, boxId){
+  inputId=inputId||'search-input'; boxId=boxId||'search-results';
+  const input=document.getElementById(inputId);
+  const box=document.getElementById(boxId);
+  if(!input || !box) return;
+  const hasFocus = document.activeElement === input;
+  if(!hasFocus && !input.value.trim()){
+    box.classList.remove('show');
+    box.innerHTML='';
+    return;
+  }
+  doSearchNow(input.value, boxId);
+};
+window.toggleMobileSearch = function(){
+  const bar=document.getElementById('mobile-search-bar');
+  const btn=document.getElementById('nav-search-toggle');
+  if(!bar) return;
+  const isOpen=bar.classList.toggle('open');
+  if(btn){
+    btn.classList.toggle('active', isOpen);
+    btn.blur();
+  }
+  if(isOpen){
+    setTimeout(()=>{ const inp=document.getElementById('search-input-m'); if(inp) inp.focus(); },260);
+  } else {
+    const res=document.getElementById('search-results-m');
+    if(res){ res.classList.remove('show'); }
+  }
+};
+window.selectSearchResult = function(id){
+  openReader(id);
+  ['search-input','search-input-m'].forEach(iid=>{ const el=document.getElementById(iid); if(el) el.value=''; });
+  document.querySelectorAll('.search-results').forEach(b=>{ b.classList.remove('show'); b.innerHTML=''; });
+  const bar=document.getElementById('mobile-search-bar');
+  if(bar) bar.classList.remove('open');
+  const navBtn=document.getElementById('nav-search-toggle');
+  if(navBtn) navBtn.classList.remove('active');
+};
+function srItemHtml(a){
+  const initials=(a.title||'?').trim().slice(0,1).toUpperCase();
+  const thumb=a.img?`<img src="${a.img}" alt="" loading="lazy" onerror="this.parentElement.textContent='${initials}'">`:initials;
+  return `<div class="sr-item" onclick="selectSearchResult('${a.id}')">
+    <div class="sr-item-thumb">${thumb}</div>
+    <div class="sr-item-body">
+      <div class="sr-item-title">${a.title}</div>
+      <div class="sr-item-meta"><span class="sr-cat-dot" style="background:${catColor(a.category)}"></span>${a.category} · ${a.date}</div>
+    </div>
+  </div>`;
+}
+// Case-insensitive AND accent-insensitive (e.g. "café" matches "cafe", "NAIVE" matches "naïve").
+function normalizeText(str){
+  return (str||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+// Cheap edit-distance check (no external libs) so a one-letter typo like "campain" still
+// finds "campaign". Only used as a last-resort fallback pass, and only for longer words,
+// so it can't accidentally start matching unrelated short words.
+function isCloseMatch(word, token){
+  if(Math.abs(word.length-token.length)>1) return false;
+  let i=0,j=0,edits=0;
+  while(i<word.length && j<token.length){
+    if(word[i]===token[j]){ i++; j++; continue; }
+    edits++;
+    if(edits>1) return false;
+    if(word.length>token.length) i++;
+    else if(word.length<token.length) j++;
+    else { i++; j++; }
+  }
+  edits += (word.length-i)+(token.length-j);
+  return edits<=1;
+}
+function fieldScore(text, t, weight){
+  if(!text) return 0;
+  if(text.includes(t)){
+    const wordBoundary = new RegExp('(^|[^a-z0-9])'+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^a-z0-9]|$)');
+    const wholeWord = wordBoundary.test(text);
+    const atStart = text.startsWith(t);
+    return weight * (atStart?1.5:wholeWord?1.2:1);
+  }
+  return 0;
+}
+function scoreArticle(a, tokens, idx, fuzzy){
+  const title=normalizeText(a.title);
+  const excerpt=normalizeText(a.excerpt);
+  const category=normalizeText(a.category);
+  const author=normalizeText(a.author);
+  const body=normalizeText(a.body);
+  let score=0, hits=0;
+  tokens.forEach(t=>{
+    if(!t) return;
+    let s=fieldScore(title,t,4) || fieldScore(category,t,3) || fieldScore(author,t,3) || fieldScore(excerpt,t,2) || fieldScore(body,t,1);
+    if(!s && fuzzy && t.length>=4){
+      // Only reached when nothing matched normally anywhere — try a near-match on title words.
+      const closeWord = title.split(/[^a-z0-9]+/).find(w=>w.length>=4 && isCloseMatch(w,t));
+      if(closeWord) s=3;
+    }
+    if(s){ score+=s; hits++; }
+  });
+  if(hits>0){
+    // Small recency nudge so a just-posted story isn't buried behind older,
+    // equally-relevant matches — strongest for the newest posts, fading out
+    // by roughly the 40th-most-recent article.
+    score += Math.max(0, 1-(idx||0)/40);
+  }
+  return {score,hits};
+}
+function doSearchNow(q, boxId){
+  boxId=boxId||'search-results';
+  const box=document.getElementById(boxId);
+  if(!box) return;
+  q=normalizeText(q.trim());
+  if(!q){
+    const recs=(articles||[]).slice(0,5);
+    if(!recs.length){ box.classList.remove('show'); box.innerHTML=''; return; }
+    box.innerHTML=`<div class="sr-header">Recommended for you</div>${recs.map(srItemHtml).join('')}`;
+    box.classList.add('show');
+    return;
+  }
+  const tokens=q.split(/\s+/).filter(Boolean);
+  // Pass 1: every word must appear somewhere (title/category/author/excerpt/body), in any order.
+  let matched=(articles||[]).map((a,idx)=>({a,...scoreArticle(a,tokens,idx,false)})).filter(x=>x.hits===tokens.length);
+  // Pass 2 (fallback): if nothing matched every word, surface anything matching at least one word,
+  // so a typo or an extra word doesn't leave the person with zero results.
+  if(!matched.length){
+    matched=(articles||[]).map((a,idx)=>({a,...scoreArticle(a,tokens,idx,false)})).filter(x=>x.hits>0);
+  }
+  // Pass 3 (fuzzy fallback): if still nothing, allow a one-letter-off match on title words,
+  // so small typos ("campain" -> "campaign") still surface a result.
+  if(!matched.length){
+    matched=(articles||[]).map((a,idx)=>({a,...scoreArticle(a,tokens,idx,true)})).filter(x=>x.hits>0);
+  }
+  matched.sort((x,y)=>(y.score-x.score)||(y.hits-x.hits));
+  const res=matched.slice(0,6).map(x=>x.a);
+  if(!res.length){ box.innerHTML='<div class="sr-none">No stories match your search.</div>'; box.classList.add('show'); return; }
+  box.innerHTML=`<div class="sr-header">Suggestions</div>${res.map(srItemHtml).join('')}`;
+  box.classList.add('show');
+}
+
+document.addEventListener('click',e=>{ if(!e.target.closest('.search-wrap'))document.querySelectorAll('.search-results').forEach(b=>b.classList.remove('show')); });
+
+// Show loading screen until first data arrives
+setTimeout(hideLoading, 8000); // fallback
+</script>
+</body>
+</html>
