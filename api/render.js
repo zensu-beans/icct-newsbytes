@@ -12,10 +12,6 @@ const DEFAULT_TITLE = 'Newsbytes — ICCT Colleges Student Newspaper';
 const DEFAULT_DESC =
   'Your source for campus news, sports, editorials, and student life at ICCT Colleges.';
 
-// No domain yet? No problem. Vercel puts the actual request host (your
-// *.vercel.app URL today, your custom domain later) in these headers, so
-// og:url / og:image are always built from wherever this deployment is
-// actually being served — nothing to hardcode, nothing to update later.
 function getSiteUrl(req) {
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   const proto = req.headers['x-forwarded-proto'] || 'https';
@@ -58,6 +54,19 @@ function parseFirestoreDoc(doc) {
   return out;
 }
 
+// og:image MUST be a real fetchable http(s) URL — Facebook/Messenger cannot
+// render a data:image/...;base64,... string. If the article's image is
+// stored as base64 (common when images live directly in Firestore fields
+// rather than Firebase Storage/an external host), point og:image at our
+// own /api/image endpoint instead, which decodes and serves real bytes.
+function resolveImageUrl(img, SITE_URL, articleId) {
+  if (!img) return null;
+  if (/^data:image\//i.test(img)) {
+    return `${SITE_URL}/api/image?article=${encodeURIComponent(String(articleId))}`;
+  }
+  return img; // already a real URL (Storage, external host, etc.)
+}
+
 module.exports = async (req, res) => {
   try {
     const SITE_URL = getSiteUrl(req);
@@ -82,7 +91,9 @@ module.exports = async (req, res) => {
           ? trunc(a.excerpt, 200)
           : trunc(a.body, 200) || DEFAULT_DESC;
         // Missing/broken featured image -> fall back to the site logo.
-        image = a.img || `${SITE_URL}/newsbytes_logo.png`;
+        // Base64-stored images get routed through /api/image (see below),
+        // since og:image must be a real fetchable URL, not a data: URI.
+        image = resolveImageUrl(a.img, SITE_URL, articleId) || `${SITE_URL}/newsbytes_logo.png`;
       }
       url = `${SITE_URL}/?article=${encodeURIComponent(String(articleId))}`;
     }
