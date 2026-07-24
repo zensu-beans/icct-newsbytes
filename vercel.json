@@ -1,6 +1,5 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/api/render" },
-    { "source": "/index.html", "destination": "/api/render" }
+    { "source": "/article/:id", "destination": "/api/article?id=:id" }
   ]
 }
