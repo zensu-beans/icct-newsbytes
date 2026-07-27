@@ -669,9 +669,7 @@ let catCursors = {};         // pagination cursor per category
 let exhausted = { All:false };
 let catCounts = {};          // cached true totals per category (from Firestore aggregation)
 let loadingMore = false;
-// Categories are managed from the admin dashboard (settings/categories doc).
-// This default is only used until that doc loads for the first time, or if
-// it doesn't exist yet, so the site still looks right out of the box.
+
 const DEFAULT_CATEGORIES = [
   {name:'Academics',color:'#6a4fc9'},{name:'Events',color:'#b5762e'},{name:'Sports',color:'#2f7d5c'},
   {name:'Student Life',color:'#c8382a'},{name:'Announcements',color:'#946f2e'},
