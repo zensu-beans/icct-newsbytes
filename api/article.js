@@ -2,8 +2,7 @@ const PROJECT_ID = 'newsbytes-5ed18';
 const SITE_NAME = 'Newsbytes';
 const DEFAULT_DESC = 'Campus news, events, sports, and student life — straight from ICCT Colleges.';
 
-// Known social/link-preview bots. Add more here if you notice a platform
-// isn't picking up rich previews.
+// Known social/link-preview bots.
 const BOT_UA = /facebookexternalhit|Facebot|Twitterbot|Slackbot|Discordbot|WhatsApp|TelegramBot|LinkedInBot|Pinterest|redditbot|Googlebot|bingbot|Applebot|SkypeUriPreview|vkShare|Iframely|Embedly|W3C_Validator|Google-InspectionTool|DuckDuckBot|ia_archiver|quora/i;
 
 function escapeHtml(s) {
